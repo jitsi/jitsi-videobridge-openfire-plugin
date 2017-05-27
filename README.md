@@ -5,7 +5,7 @@ Building
 
 This project is using the Maven-based Openfire build process, as introduced in Openfire 4.2.0. To build this plugin locally, ensure that the following are available on your local host:
 
-* A Java Development Kit, version 7 or (preferably) 8;
+* A Java Development Kit, version 7 or (preferably) 8
 * Apache Maven 3
 
 To build this project, invoke on a command shell:
