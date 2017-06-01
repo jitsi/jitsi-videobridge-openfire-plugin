@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/igniterealtime/ofmeet-openfire-plugin.svg?branch=master)](https://travis-ci.org/igniterealtime/ofmeet-openfire-plugin)
+
 The Jitsi Video Bridge Openfire Plugin is a plugin for the [Openfire XMPP server](https://www.igniterealtime.org/openfire), which integrates the [Jitsi Videobridge](https://github.com/jitsi/jitsi-videobridge) XMPP component.
 
 Building
