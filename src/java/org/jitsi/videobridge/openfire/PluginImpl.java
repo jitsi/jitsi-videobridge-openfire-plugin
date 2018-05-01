@@ -178,7 +178,7 @@ public class PluginImpl
         // for Jitsi Videobridge: the REST API is not loaded.
         final OSGiBundleConfig osgiBundles = new JvbOpenfireBundleConfig();
         OSGi.setBundleConfig(osgiBundles);
-        OSGi.setClassLoader(ClassLoader.getSystemClassLoader());
+        OSGi.setClassLoader(manager.getPluginClassloader(this));
 
         ComponentImpl component =
             new ComponentImpl( hostname, port, domain, subdomain, secret );
