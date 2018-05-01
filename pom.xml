@@ -10,7 +10,7 @@
 
     <groupId>org.jitsi</groupId>
     <artifactId>jitsi-videobridge-openfire</artifactId>
-    <version>2.4-SNAPSHOT</version>
+    <version>2.5-SNAPSHOT</version>
     <name>Jitsi Videobridge Openfire Plugin</name>
     <description>Integrates Jitsi Video Bridge into Openfire.</description>
 
