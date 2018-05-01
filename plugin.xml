@@ -7,7 +7,7 @@
     <minServerVersion>3.0.0</minServerVersion>
     <name>${project.name}</name>
     <version>${project.version}</version>
-    <date>10/03/2017</date>
+    <date>05/01/2018</date>
     <minJavaVersion>1.8</minJavaVersion>
 
    <adminconsole>
