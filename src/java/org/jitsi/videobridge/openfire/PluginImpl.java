@@ -23,6 +23,7 @@ import java.util.jar.*;
 
 import org.jitsi.meet.OSGi;
 import org.jitsi.meet.OSGiBundleConfig;
+import org.jitsi.service.libjitsi.LibJitsi;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
 import org.jitsi.videobridge.xmpp.*;
@@ -93,6 +94,20 @@ public class PluginImpl
     private String subdomain;
 
     /**
+     * Changes to port number configuration require a restart of the plugin to take affect.
+     * The minimum port number value that is currently in use is equal to the port number
+     * that was configured when this plugin got initialized.
+     */
+    private int minPortAtStartup = -1;
+
+    /**
+     * Changes to port number configuration require a restart of the plugin to take affect.
+     * The maximum port number value that is currently in use is equal to the port number
+     * that was configured when this plugin got initialized.
+     */
+    private int maxPortAtStartup = -1;
+
+    /**
      * Destroys this <tt>Plugin</tt> i.e. releases the resources acquired by
      * this <tt>Plugin</tt> throughout its life up until now and prepares it for
      * garbage collection.
@@ -132,19 +147,6 @@ public class PluginImpl
     public void initializePlugin(PluginManager manager, File pluginDirectory)
     {
         PropertyEventDispatcher.addListener(this);
-
-        // Let's check for custom configuration
-        String maxVal = JiveGlobals.getProperty(MAX_PORT_NUMBER_PROPERTY_NAME);
-        String minVal = JiveGlobals.getProperty(MIN_PORT_NUMBER_PROPERTY_NAME);
-
-        if(maxVal != null)
-            setIntProperty(
-                DefaultStreamConnector.MAX_PORT_NUMBER_PROPERTY_NAME,
-                maxVal);
-        if(minVal != null)
-            setIntProperty(
-                DefaultStreamConnector.MIN_PORT_NUMBER_PROPERTY_NAME,
-                minVal);
 
         try
         {
@@ -189,6 +191,25 @@ public class PluginImpl
             this.componentManager = componentManager;
             this.component = component;
             this.subdomain = subdomain;
+
+            // Note that property setting uses an OSGi service that's only available after the component is started.
+            //
+            // TODO I suspect that there's a race condition here. When a client requests a socket before the changes
+            //      below are applied, these new values might be ignored and an implementation default might be used
+            //      instead.
+            setPortProperty(
+                DefaultStreamConnector.MAX_PORT_NUMBER_PROPERTY_NAME,
+                JiveGlobals.getIntProperty(MAX_PORT_NUMBER_PROPERTY_NAME, MAX_PORT_DEFAULT_VALUE)
+            );
+
+            setPortProperty(
+                DefaultStreamConnector.MIN_PORT_NUMBER_PROPERTY_NAME,
+                JiveGlobals.getIntProperty(MIN_PORT_NUMBER_PROPERTY_NAME, MIN_PORT_DEFAULT_VALUE)
+            );
+
+            // Register this once
+            maxPortAtStartup = getMaxPort();
+            minPortAtStartup = getMinPort();
         }
         catch (ComponentException ce)
         {
@@ -328,32 +349,32 @@ public class PluginImpl
 
     /**
      * Returns the value of max port if set or the default one.
+     *
+     * Note that this method returns the configured value, which might differ from the configuration that is
+     * in effect (as configuration changes require a restart to be taken into effect).
+     *
      * @return the value of max port if set or the default one.
      */
-    public String getMaxPort()
+    public int getMaxPort()
     {
-        String val = System.getProperty(
-            DefaultStreamConnector.MAX_PORT_NUMBER_PROPERTY_NAME);
-
-        if(val != null)
-            return val;
-        else
-            return String.valueOf(MAX_PORT_DEFAULT_VALUE);
+        return LibJitsi.getConfigurationService().getInt(
+            DefaultStreamConnector.MAX_PORT_NUMBER_PROPERTY_NAME,
+            MAX_PORT_DEFAULT_VALUE);
     }
 
     /**
      * Returns the value of min port if set or the default one.
+     *
+     * Note that this method returns the configured value, which might differ from the configuration that is
+     * in effect (as configuration changes require a restart to be taken into effect).
+     *
      * @return the value of min port if set or the default one.
      */
-    public String getMinPort()
+    public int getMinPort()
     {
-        String val = System.getProperty(
-            DefaultStreamConnector.MIN_PORT_NUMBER_PROPERTY_NAME);
-
-        if(val != null)
-            return val;
-        else
-            return String.valueOf(MIN_PORT_DEFAULT_VALUE);
+        return LibJitsi.getConfigurationService().getInt(
+            DefaultStreamConnector.MIN_PORT_NUMBER_PROPERTY_NAME,
+            MIN_PORT_DEFAULT_VALUE);
     }
 
     /**
@@ -367,13 +388,13 @@ public class PluginImpl
     {
         if(property.equals(MAX_PORT_NUMBER_PROPERTY_NAME))
         {
-            setIntProperty(
+            setPortProperty(
                 DefaultStreamConnector.MAX_PORT_NUMBER_PROPERTY_NAME,
                 (String)params.get("value"));
         }
         else if(property.equals(MIN_PORT_NUMBER_PROPERTY_NAME))
         {
-            setIntProperty(
+            setPortProperty(
                 DefaultStreamConnector.MIN_PORT_NUMBER_PROPERTY_NAME,
                 (String)params.get("value"));
         }
@@ -384,20 +405,30 @@ public class PluginImpl
      * @param property the property name.
      * @param value the value to change.
      */
-    private void setIntProperty(String property, String value)
+    private void setPortProperty(String property, String value)
     {
         try
         {
             // let's just check that value is integer
             int port = Integer.valueOf(value);
 
-            if(port >= 1 && port <= 65535)
-                System.setProperty(property, value);
+            setPortProperty( property, port );
         }
         catch(NumberFormatException ex)
         {
             Log.error("Error setting port", ex);
         }
+    }
+
+    /**
+     * Sets int property.
+     * @param property the property name.
+     * @param value the value to change.
+     */
+    private void setPortProperty(String property, int value)
+    {
+        if(value >= 1 && value <= 65535)
+            LibJitsi.getConfigurationService().setProperty(property, Integer.toString( value ));
     }
 
     /**
@@ -410,13 +441,13 @@ public class PluginImpl
     {
         if(property.equals(MAX_PORT_NUMBER_PROPERTY_NAME))
         {
-            System.setProperty(
+            LibJitsi.getConfigurationService().setProperty(
                 DefaultStreamConnector.MAX_PORT_NUMBER_PROPERTY_NAME,
                 String.valueOf(MAX_PORT_DEFAULT_VALUE));
         }
         else if(property.equals(MIN_PORT_NUMBER_PROPERTY_NAME))
         {
-            System.setProperty(
+            LibJitsi.getConfigurationService().setProperty(
                 DefaultStreamConnector.MIN_PORT_NUMBER_PROPERTY_NAME,
                 String.valueOf(MIN_PORT_DEFAULT_VALUE));
         }
@@ -443,5 +474,15 @@ public class PluginImpl
     public void xmlPropertyDeleted(String property, Map params)
     {
         propertyDeleted(property, params);
+    }
+
+    /**
+     * Checks if the plugin requires a restart to apply pending configuration changes.
+     *
+     * @return true if a restart is needed to apply pending changes, otherwise false.
+     */
+    public boolean restartNeeded()
+    {
+        return maxPortAtStartup != getMaxPort() || minPortAtStartup != getMinPort();
     }
 }
