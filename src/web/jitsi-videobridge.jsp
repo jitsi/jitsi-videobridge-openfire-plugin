@@ -97,6 +97,22 @@
 <br/>
 <% } %>
 
+<% if ( plugin.restartNeeded() ) { %>
+<div class="jive-warning">
+    <table cellpadding="0" cellspacing="0" border="0">
+        <tbody>
+        <tr>
+            <td class="jive-icon"><img src="/images/warning-16x16.gif" width="16" height="16" border="0" alt=""/></td>
+            <td class="jive-icon-label">
+                <fmt:message key="config.page.configuration.restart-needed"/>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+</div>
+<br/>
+<% } %>
+
 <p>
     <fmt:message key="config.page.description"/>
 </p>
