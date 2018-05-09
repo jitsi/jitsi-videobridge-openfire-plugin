@@ -26,6 +26,7 @@ import org.jitsi.meet.OSGiBundleConfig;
 import org.jitsi.service.libjitsi.LibJitsi;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
+import org.jitsi.videobridge.IceUdpTransportManager;
 import org.jitsi.videobridge.xmpp.*;
 import org.jivesoftware.openfire.XMPPServer;
 import org.jivesoftware.openfire.XMPPServerInfo;
@@ -52,18 +53,30 @@ public class PluginImpl
     private static final Logger Log = LoggerFactory.getLogger(PluginImpl.class);
 
     /**
-     * The name of the property that contains the maximum port number that we'd
-     * like our RTP managers to bind upon.
+     * The name of the Openfire property that contains the single UDP port number that we'd
+     * like our RTP managers to bind upon when using multiplexing of media streams.
+     */
+    public static final String SINGLE_PORT_NUMBER_PROPERTY_NAME
+        = "org.jitsi.videobridge.media.SINGLE_PORT_HARVESTER_PORT";
+
+    /**
+     * The name of the Openfire property that contains the maximum UDP port number that we'd
+     * like our RTP managers to bind upon when dynamically allocating ports for media streams.
      */
     public static final String MAX_PORT_NUMBER_PROPERTY_NAME
         = "org.jitsi.videobridge.media.MAX_PORT_NUMBER";
 
     /**
-     * The name of the property that contains the minimum port number that we'd
-     * like our RTP managers to bind upon.
+     * The name of the Openfire property that contains the minimum UDP port number that we'd
+     * like our RTP managers to bind upon when dynamically allocating ports for media streams.
      */
     public static final String MIN_PORT_NUMBER_PROPERTY_NAME
         = "org.jitsi.videobridge.media.MIN_PORT_NUMBER";
+
+    /**
+     * The default UDP port value used when multiplexing multiple media streams.
+     */
+    public static final int SINGLE_PORT_DEFAULT_VALUE = 10000; // should be equal to org.jitsi.videobridge.IceUdpTransportManager.SINGLE_PORT_DEFAULT_VALUE
 
     /**
      * The minimum port number default value.
@@ -92,6 +105,13 @@ public class PluginImpl
      * added to {@link #componentManager}.
      */
     private String subdomain;
+
+    /**
+     * Changes to port number configuration require a restart of the plugin to take affect.
+     * The single port number value that is currently in use is equal to the port number
+     * that was configured when this plugin got initialized.
+     */
+    private int singlePortAtStartup = -1;
 
     /**
      * Changes to port number configuration require a restart of the plugin to take affect.
@@ -198,6 +218,11 @@ public class PluginImpl
             //      below are applied, these new values might be ignored and an implementation default might be used
             //      instead.
             setPortProperty(
+                IceUdpTransportManager.SINGLE_PORT_HARVESTER_PORT,
+                JiveGlobals.getIntProperty(SINGLE_PORT_NUMBER_PROPERTY_NAME, SINGLE_PORT_DEFAULT_VALUE)
+            );
+
+            setPortProperty(
                 DefaultStreamConnector.MAX_PORT_NUMBER_PROPERTY_NAME,
                 JiveGlobals.getIntProperty(MAX_PORT_NUMBER_PROPERTY_NAME, MAX_PORT_DEFAULT_VALUE)
             );
@@ -208,6 +233,7 @@ public class PluginImpl
             );
 
             // Register this once
+            singlePortAtStartup = getSinglePort();
             maxPortAtStartup = getMaxPort();
             minPortAtStartup = getMinPort();
         }
@@ -348,12 +374,29 @@ public class PluginImpl
     }
 
     /**
-     * Returns the value of max port if set or the default one.
+     * Returns the UDP port number that is used for multiplexing multiple media streams.
      *
      * Note that this method returns the configured value, which might differ from the configuration that is
      * in effect (as configuration changes require a restart to be taken into effect).
      *
-     * @return the value of max port if set or the default one.
+     * @return a UDP port number value.
+     */
+    public int getSinglePort()
+    {
+        return LibJitsi.getConfigurationService().getInt(
+            IceUdpTransportManager.SINGLE_PORT_HARVESTER_PORT,
+            SINGLE_PORT_DEFAULT_VALUE
+        );
+    }
+
+    /**
+     * When multiplexing of media streams is not possible, the videobridge will automatically fallback to using
+     * dynamically allocated UDP ports in a specific range. This method returns the upper-bound of that range.
+     *
+     * Note that this method returns the configured value, which might differ from the configuration that is
+     * in effect (as configuration changes require a restart to be taken into effect).
+     *
+     * @return A UDP port number value.
      */
     public int getMaxPort()
     {
@@ -363,12 +406,13 @@ public class PluginImpl
     }
 
     /**
-     * Returns the value of min port if set or the default one.
+     * When multiplexing of media streams is not possible, the videobridge will automatically fallback to using
+     * dynamically allocated UDP ports in a specific range. This method returns the lower-bound of that range.
      *
      * Note that this method returns the configured value, which might differ from the configuration that is
      * in effect (as configuration changes require a restart to be taken into effect).
      *
-     * @return the value of min port if set or the default one.
+     * @return A UDP port number value.
      */
     public int getMinPort()
     {
@@ -386,7 +430,13 @@ public class PluginImpl
      */
     public void propertySet(String property, Map params)
     {
-        if(property.equals(MAX_PORT_NUMBER_PROPERTY_NAME))
+        if(property.equals(SINGLE_PORT_NUMBER_PROPERTY_NAME))
+        {
+            setPortProperty(
+                IceUdpTransportManager.SINGLE_PORT_HARVESTER_PORT,
+                (String)params.get("value"));
+        }
+        else if(property.equals(MAX_PORT_NUMBER_PROPERTY_NAME))
         {
             setPortProperty(
                 DefaultStreamConnector.MAX_PORT_NUMBER_PROPERTY_NAME,
@@ -439,7 +489,13 @@ public class PluginImpl
      */
     public void propertyDeleted(String property, Map params)
     {
-        if(property.equals(MAX_PORT_NUMBER_PROPERTY_NAME))
+        if(property.equals(SINGLE_PORT_NUMBER_PROPERTY_NAME))
+        {
+            LibJitsi.getConfigurationService().setProperty(
+                IceUdpTransportManager.SINGLE_PORT_HARVESTER_PORT,
+                String.valueOf(SINGLE_PORT_DEFAULT_VALUE));
+        }
+        else if(property.equals(MAX_PORT_NUMBER_PROPERTY_NAME))
         {
             LibJitsi.getConfigurationService().setProperty(
                 DefaultStreamConnector.MAX_PORT_NUMBER_PROPERTY_NAME,
@@ -483,6 +539,6 @@ public class PluginImpl
      */
     public boolean restartNeeded()
     {
-        return maxPortAtStartup != getMaxPort() || minPortAtStartup != getMinPort();
+        return singlePortAtStartup != getSinglePort() || maxPortAtStartup != getMaxPort() || minPortAtStartup != getMinPort();
     }
 }
