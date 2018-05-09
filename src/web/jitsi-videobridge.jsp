@@ -30,6 +30,28 @@
 
     if (update)
     {
+        String singlePort = request.getParameter("singleport");
+        if (singlePort != null) {
+            singlePort = singlePort.trim();
+            try
+            {
+                int port = Integer.valueOf(singlePort);
+
+                if(port >= 1 && port <= 65535)
+                    JiveGlobals.setProperty(
+                            PluginImpl.SINGLE_PORT_NUMBER_PROPERTY_NAME, singlePort);
+                else
+                    throw new NumberFormatException("out of range port");
+
+            }
+            catch (Exception e)
+            {
+                errorMessage = LocaleUtils.getLocalizedString(
+                        "config.page.configuration.error.singleport",
+                        "jitsivideobridge");
+            }
+        }
+
         String minPort = request.getParameter("minport");
         if (minPort != null) {
             minPort = minPort.trim();
@@ -51,6 +73,7 @@
                     "jitsivideobridge");
             }
         }
+
         String maxPort = request.getParameter("maxport");
         if (maxPort != null) {
             maxPort = maxPort.trim();
@@ -124,19 +147,38 @@
         <table cellpadding="0" cellspacing="0" border="0">
             <tbody>
             <tr>
-                <td><label class="jive-label"><fmt:message key="config.page.configuration.min.port"/>:</label><br>
-                </td>
+                <td colspan="3" align="left"><fmt:message key="config.page.configuration.single.port.description"/></td>
+            </tr>
+            <tr>
+                <td width="1%">&nbsp;</td>
+                <td width="10%"><label class="jive-label" ><fmt:message key="config.page.configuration.single.port"/>:</label></td>
                 <td align="left">
-                    <input name="minport" type="text" maxlength="5" size="5"
-                           value="<%=plugin.getMinPort()%>"/>
+                    <input name="singleport" type="text" maxlength="5" size="5"
+                           value="<%=plugin.getSinglePort()%>"/> <fmt:message key="config.page.configuration.udp"/>
                 </td>
             </tr>
             <tr>
-                <td><label class="jive-label"><fmt:message key="config.page.configuration.max.port"/>:</label><br>
+                <td colspan="3" align="left">&nbsp;</td>
+            </tr>
+            <tr>
+                <td colspan="3" align="left"><fmt:message key="config.page.configuration.minmax.port.description"/></td>
+            </tr>
+            <tr>
+                <td>&nbsp;</td>
+                <td><label class="jive-label"><fmt:message key="config.page.configuration.min.port"/>:</label>
+                </td>
+                <td align="left">
+                    <input name="minport" type="text" maxlength="5" size="5"
+                           value="<%=plugin.getMinPort()%>"/> <fmt:message key="config.page.configuration.udp"/>
+                </td>
+            </tr>
+            <tr>
+                <td>&nbsp;</td>
+                <td><label class="jive-label"><fmt:message key="config.page.configuration.max.port"/>:</label>
                 </td>
                 <td align="left">
                     <input name="maxport" type="text" maxlength="5" size="5"
-                           value="<%=plugin.getMaxPort()%>"/>
+                           value="<%=plugin.getMaxPort()%>"/> <fmt:message key="config.page.configuration.udp"/>
                 </td>
             </tr>
             </tbody>
