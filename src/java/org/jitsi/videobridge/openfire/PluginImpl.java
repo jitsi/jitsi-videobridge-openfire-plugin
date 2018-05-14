@@ -79,28 +79,7 @@ public class PluginImpl
      * The name of the Openfire property that contains the boolean value to determine that TCP
      * connectivity is available.
      */
-    public static final String TCP_ENABLED_PROPERTY_NAME
-        = "org.jitsi.videobridge.TCP_HARVESTER_ENABLED";
-
-    /**
-     * The default UDP port value used when multiplexing multiple media streams.
-     */
-    public static final int SINGLE_PORT_DEFAULT_VALUE = 10000; // should be equal to org.jitsi.videobridge.IceUdpTransportManager.SINGLE_PORT_DEFAULT_VALUE
-
-    /**
-     * The minimum port number default value.
-     */
-    public static final int MIN_PORT_DEFAULT_VALUE = 10001;
-
-    /**
-     * The maximum port number default value.
-     */
-    public static final int MAX_PORT_DEFAULT_VALUE = 20000;
-
-    /**
-     * The default setting for _disabling_ the TCP connectivity.
-     */
-    public static final boolean DISABLE_TCP_HARVESTER_DEFAULT_VALUE = false; // should be equal to the default behavior as implemented in org.jitsi.videobridge.IceUdpTransportManager
+    public static final String TCP_ENABLED_PROPERTY_NAME = "org.jitsi.videobridge.TCP_HARVESTER_ENABLED";
 
     /**
      * The <tt>ComponentManager</tt> to which the component of this
@@ -119,41 +98,6 @@ public class PluginImpl
      * added to {@link #componentManager}.
      */
     private String subdomain;
-
-    /**
-     * Changes to port number configuration require a restart of the plugin to take affect.
-     * The single port number value that is currently in use is equal to the port number
-     * that was configured when this plugin got initialized, which is what is stored in this field.
-     */
-    private int singlePortAtStartup = -1;
-
-    /**
-     * Changes to port number configuration require a restart of the plugin to take affect.
-     * The minimum port number value that is currently in use is equal to the port number
-     * that was configured when this plugin got initialized, which is what is stored in this field.
-     */
-    private int minPortAtStartup = -1;
-
-    /**
-     * Changes to port number configuration require a restart of the plugin to take affect.
-     * The maximum port number value that is currently in use is equal to the port number
-     * that was configured when this plugin got initialized, which is what is stored in this field.
-     */
-    private int maxPortAtStartup = -1;
-
-    /**
-     * Changes to TCP harvester availability require a restart of the plugin to take affect.
-     * The current availability is equal to the availability  that was configured when this
-     * plugin got initialized, which is what is stored in this field.
-     */
-    private boolean tcpPortEnabledAtStartup;
-
-    /**
-     * Changes to TCP harvester availability require a restart of the plugin to take affect.
-     * The current TCP port number used is equal to the port number that was configured when this
-     * plugin got initialized, which is what is stored in this field. Note: can be null.
-     */
-    private Integer tcpPortAtStartup;
 
     /**
      * Destroys this <tt>Plugin</tt> i.e. releases the resources acquired by
@@ -247,17 +191,17 @@ public class PluginImpl
             //      instead.
             setPortProperty(
                 IceUdpTransportManager.SINGLE_PORT_HARVESTER_PORT,
-                JiveGlobals.getIntProperty(SINGLE_PORT_NUMBER_PROPERTY_NAME, SINGLE_PORT_DEFAULT_VALUE)
+                JiveGlobals.getIntProperty(SINGLE_PORT_NUMBER_PROPERTY_NAME, RuntimeConfiguration.SINGLE_PORT_DEFAULT_VALUE)
             );
 
             setPortProperty(
                 DefaultStreamConnector.MAX_PORT_NUMBER_PROPERTY_NAME,
-                JiveGlobals.getIntProperty(MAX_PORT_NUMBER_PROPERTY_NAME, MAX_PORT_DEFAULT_VALUE)
+                JiveGlobals.getIntProperty(MAX_PORT_NUMBER_PROPERTY_NAME, RuntimeConfiguration.MAX_PORT_DEFAULT_VALUE)
             );
 
             setPortProperty(
                 DefaultStreamConnector.MIN_PORT_NUMBER_PROPERTY_NAME,
-                JiveGlobals.getIntProperty(MIN_PORT_NUMBER_PROPERTY_NAME, MIN_PORT_DEFAULT_VALUE)
+                JiveGlobals.getIntProperty(MIN_PORT_NUMBER_PROPERTY_NAME, RuntimeConfiguration.MIN_PORT_DEFAULT_VALUE)
             );
 
             if ( JiveGlobals.getProperty( TCP_ENABLED_PROPERTY_NAME ) != null)
@@ -274,13 +218,6 @@ public class PluginImpl
                     IceUdpTransportManager.TCP_HARVESTER_PORT,
                     JiveGlobals.getProperty( TCP_PORT_PROPERTY_NAME ));
             }
-
-            // Register this once
-            singlePortAtStartup = getSinglePort();
-            maxPortAtStartup = getMaxPort();
-            minPortAtStartup = getMinPort();
-            tcpPortEnabledAtStartup = isTcpEnabled();
-            tcpPortAtStartup = getTcpPort();
         }
         catch (ComponentException ce)
         {
@@ -418,93 +355,7 @@ public class PluginImpl
         fieldSysPath.set(System.class.getClassLoader(), null);
     }
 
-    /**
-     * Returns the UDP port number that is used for multiplexing multiple media streams.
-     *
-     * Note that this method returns the configured value, which might differ from the configuration that is
-     * in effect (as configuration changes require a restart to be taken into effect).
-     *
-     * @return a UDP port number value.
-     */
-    public int getSinglePort()
-    {
-        return LibJitsi.getConfigurationService().getInt(
-            IceUdpTransportManager.SINGLE_PORT_HARVESTER_PORT,
-            SINGLE_PORT_DEFAULT_VALUE
-        );
-    }
 
-    /**
-     * When multiplexing of media streams is not possible, the videobridge will automatically fallback to using
-     * dynamically allocated UDP ports in a specific range. This method returns the upper-bound of that range.
-     *
-     * Note that this method returns the configured value, which might differ from the configuration that is
-     * in effect (as configuration changes require a restart to be taken into effect).
-     *
-     * @return A UDP port number value.
-     */
-    public int getMaxPort()
-    {
-        return LibJitsi.getConfigurationService().getInt(
-            DefaultStreamConnector.MAX_PORT_NUMBER_PROPERTY_NAME,
-            MAX_PORT_DEFAULT_VALUE);
-    }
-
-    /**
-     * When multiplexing of media streams is not possible, the videobridge will automatically fallback to using
-     * dynamically allocated UDP ports in a specific range. This method returns the lower-bound of that range.
-     *
-     * Note that this method returns the configured value, which might differ from the configuration that is
-     * in effect (as configuration changes require a restart to be taken into effect).
-     *
-     * @return A UDP port number value.
-     */
-    public int getMinPort()
-    {
-        return LibJitsi.getConfigurationService().getInt(
-            DefaultStreamConnector.MIN_PORT_NUMBER_PROPERTY_NAME,
-            MIN_PORT_DEFAULT_VALUE);
-    }
-
-    /**
-     * Jitsi Videobridge can accept and route RTP traffic over TCP. If enabled, TCP addresses will automatically be
-     * returned as ICE candidates via COLIBRI. Typically, the point of using TCP instead of UDP is to simulate HTTP
-     * traffic in a number of environments where it is the only allowed form of communication.
-     *
-     * Note that this method returns the configured value, which might differ from the configuration that is
-     * in effect (as configuration changes require a restart to be taken into effect).
-     *
-     * @return A boolean value that indicates if the videobridge is configured to allow RTP traffic over TCP.
-     */
-    public boolean isTcpEnabled()
-    {
-        // Jitsi uses a 'disable' option here. We should negate their setting.
-        return !LibJitsi.getConfigurationService().getBoolean( IceUdpTransportManager.DISABLE_TCP_HARVESTER, DISABLE_TCP_HARVESTER_DEFAULT_VALUE );
-    }
-
-    /**
-     * Returns the TCP port number that is used for multiplexing multiple media streams over TCP, or null if the default
-     * is to be used..
-     *
-     * Note that this method returns the configured value, which might differ from the configuration that is
-     * in effect (as configuration changes require a restart to be taken into effect).
-     *
-     * @return a TCP port number value, possibly null.
-     */
-    public Integer getTcpPort()
-    {
-        final int value = LibJitsi.getConfigurationService().getInt(
-            IceUdpTransportManager.TCP_HARVESTER_PORT,
-            -1
-        );
-
-        if (value == -1 )
-        {
-            return null;
-        }
-
-        return value;
-    }
 
     /**
      * A property was set. The parameter map <tt>params</tt> will contain the
@@ -599,21 +450,21 @@ public class PluginImpl
             case SINGLE_PORT_NUMBER_PROPERTY_NAME:
                 LibJitsi.getConfigurationService().setProperty(
                     IceUdpTransportManager.SINGLE_PORT_HARVESTER_PORT,
-                    String.valueOf( SINGLE_PORT_DEFAULT_VALUE )
+                    String.valueOf( RuntimeConfiguration.SINGLE_PORT_DEFAULT_VALUE )
                 );
                 break;
 
             case MAX_PORT_NUMBER_PROPERTY_NAME:
                 LibJitsi.getConfigurationService().setProperty(
                     DefaultStreamConnector.MAX_PORT_NUMBER_PROPERTY_NAME,
-                    String.valueOf( MAX_PORT_DEFAULT_VALUE ) // note that ĺibjitsi's default (6000) is different from JVB's default (20000). We need to manually set a valueto prevent the wrong default to be used!
+                    String.valueOf( RuntimeConfiguration.MAX_PORT_DEFAULT_VALUE ) // note that ĺibjitsi's default (6000) is different from JVB's default (20000). We need to manually set a value (instead of removing the value) to prevent the wrong default to be used!
                 );
                 break;
 
             case MIN_PORT_NUMBER_PROPERTY_NAME:
                 LibJitsi.getConfigurationService().setProperty(
                     DefaultStreamConnector.MIN_PORT_NUMBER_PROPERTY_NAME,
-                    String.valueOf( MIN_PORT_DEFAULT_VALUE ) // note that ĺibjitsi's default (5000) is different from JVB's default (10001). We need to manually set a valueto prevent the wrong default to be used!
+                    String.valueOf( RuntimeConfiguration.MIN_PORT_DEFAULT_VALUE ) // note that ĺibjitsi's default (5000) is different from JVB's default (10001). We need to manually set a value (instead of removing the value) to prevent the wrong default to be used!
                 );
                 break;
 
@@ -648,20 +499,5 @@ public class PluginImpl
     public void xmlPropertyDeleted(String property, Map params)
     {
         propertyDeleted(property, params);
-    }
-
-    /**
-     * Checks if the plugin requires a restart to apply pending configuration changes.
-     *
-     * @return true if a restart is needed to apply pending changes, otherwise false.
-     */
-    public boolean restartNeeded()
-    {
-        return
-               singlePortAtStartup != getSinglePort()
-            || maxPortAtStartup != getMaxPort()
-            || minPortAtStartup != getMinPort()
-            || tcpPortEnabledAtStartup != isTcpEnabled()
-            || (tcpPortAtStartup == null && getTcpPort() != null) || (tcpPortAtStartup != null && !tcpPortAtStartup.equals( getTcpPort() ) );
     }
 }

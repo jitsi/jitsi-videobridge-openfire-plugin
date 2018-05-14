@@ -18,6 +18,9 @@
 <%@ page import="org.jivesoftware.util.*" %>
 <%@ page import="java.util.HashMap" %>
 <%@ page import="java.util.Map" %>
+<%@ page import="org.jivesoftware.openfire.container.Plugin" %>
+<%@ page import="java.util.Collection" %>
+<%@ page import="org.jivesoftware.openfire.container.PluginClassLoader" %>
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <%@ taglib uri="http://java.sun.com/jstl/core_rt" prefix="c" %>
 <%@ taglib uri="http://java.sun.com/jstl/fmt_rt" prefix="fmt" %>
@@ -29,7 +32,16 @@
     String tcpPort;
 
     // Get handle on the plugin
-    PluginImpl plugin = (PluginImpl) XMPPServer.getInstance().getPluginManager().getPlugin("jitsivideobridge");
+    final Collection<Plugin> plugins = XMPPServer.getInstance().getPluginManager().getPlugins();
+    for ( final Plugin plugin : plugins )
+    {
+        final PluginClassLoader pluginClassloader = XMPPServer.getInstance().getPluginManager().getPluginClassloader( plugin );
+        if ( this.getClass().getClassLoader() == pluginClassloader )
+        {
+            final Class<?> aClass = pluginClassloader.loadClass( PluginImpl.class.getCanonicalName() );
+        }
+    }
+    //PluginImpl plugin = (PluginImpl) XMPPServer.getInstance().getPluginManager().getPlugin("jitsivideobridge");
 
     if (update)
     {
@@ -139,7 +151,7 @@
     }
     else
     {
-        tcpPort = plugin.getTcpPort() == null ? null : plugin.getTcpPort().toString();
+        tcpPort = RuntimeConfiguration.getTcpPort() == null ? null : RuntimeConfiguration.getTcpPort().toString();
     }
 
     Integer mappedTcpPort = null;
@@ -168,7 +180,7 @@
 <br/>
 <% } %>
 
-<% if ( plugin.restartNeeded() ) { %>
+<% if ( RuntimeConfiguration.restartNeeded() ) { %>
 <div class="jive-warning">
     <table cellpadding="0" cellspacing="0" border="0">
         <tbody>
@@ -202,7 +214,7 @@
                 <td width="10%"><label class="jive-label" ><fmt:message key="config.page.configuration.single.port"/>:</label></td>
                 <td align="left">
                     <input name="singleport" type="number" min="1" max="65535"
-                           value="<%=plugin.getSinglePort()%>"/> <fmt:message key="config.page.configuration.udp"/>
+                           value="<%=RuntimeConfiguration.getSinglePort()%>"/> <fmt:message key="config.page.configuration.udp"/>
                 </td>
             </tr>
             <tr>
@@ -217,7 +229,7 @@
                 </td>
                 <td align="left">
                     <input name="minport" type="number" min="1" max="65535"
-                           value="<%=plugin.getMinPort()%>"/> <fmt:message key="config.page.configuration.udp"/>
+                           value="<%=RuntimeConfiguration.getMinPort()%>"/> <fmt:message key="config.page.configuration.udp"/>
                 </td>
             </tr>
             <tr>
@@ -226,7 +238,7 @@
                 </td>
                 <td align="left">
                     <input name="maxport" type="number" min="1" max="65535"
-                           value="<%=plugin.getMaxPort()%>"/> <fmt:message key="config.page.configuration.udp"/>
+                           value="<%=RuntimeConfiguration.getMaxPort()%>"/> <fmt:message key="config.page.configuration.udp"/>
                 </td>
             </tr>
             </tbody>
@@ -244,7 +256,7 @@
             <tbody>
             <tr>
                 <td width="1%" nowrap>
-                    <input type="radio" name="tcpEnabled" value="false" id="rb01" <%= (plugin.isTcpEnabled() ? "" : "checked") %>>
+                    <input type="radio" name="tcpEnabled" value="false" id="rb01" <%= (RuntimeConfiguration.isTcpEnabled() ? "" : "checked") %>>
                 </td>
                 <td width="99%">
                     <label for="rb01">
@@ -254,7 +266,7 @@
             </tr>
             <tr>
                 <td width="1%" nowrap>
-                    <input type="radio" name="tcpEnabled" value="true" id="rb02" <%= (plugin.isTcpEnabled()  ? "checked" : "") %>>
+                    <input type="radio" name="tcpEnabled" value="true" id="rb02" <%= (RuntimeConfiguration.isTcpEnabled()  ? "checked" : "") %>>
                 </td>
                 <td width="99%">
                     <label for="rb02">
