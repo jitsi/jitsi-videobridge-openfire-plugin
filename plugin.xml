@@ -15,8 +15,8 @@
             <sidebar id="siderbar-jvb"
                      name="${plugin.title}">
                 <item id="jitsi-videobridge-settings"
-                      name="${plugin.title}"
-                      description="${plugin.title.description}"
+                      name="${plugin.sidebar.networking.title}"
+                      description="${plugin.sidebar.networking.title.description}"
                       url="jitsi-videobridge.jsp"/>
             </sidebar>
         </tab>
