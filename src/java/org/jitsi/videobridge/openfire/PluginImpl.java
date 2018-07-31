@@ -316,7 +316,19 @@ public class PluginImpl
         // for Jitsi Videobridge: the REST API is not loaded.
         final OSGiBundleConfig osgiBundles = new JvbOpenfireBundleConfig();
         OSGi.setBundleConfig(osgiBundles);
-        OSGi.setClassLoader(manager.getPluginClassloader(this));
+
+        // The class loader to be used here should be the Openfire PluginClassLoader
+        // that loads the plugin (as that will have access to the relevant files).
+        // The plugin class loader is used to initialize the plugin, so the class loader
+        // that's doing this invocation can be used instead of explicitly looking up
+        // the class loader. Using the implicit approach will allow from some flexiblity
+        // (for instance, to use a different classloader than the plugin classloader)
+        // which is utilized by at least one project that depends on this code (OFMeet).
+        final ClassLoader classLoader;
+        // classLoader = manager.getPluginClassloader(this)); // Explicitly look up the classloader
+        classLoader = Thread.currentThread().getContextClassLoader(); // Use the loader of the current thread.
+
+        OSGi.setClassLoader( classLoader );
 
         ComponentImpl component =
             new ComponentImpl( hostname, port, domain, subdomain, secret );
