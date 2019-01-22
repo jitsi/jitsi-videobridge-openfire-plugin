@@ -10,7 +10,7 @@
 
     <groupId>org.jitsi</groupId>
     <artifactId>jitsi-videobridge-openfire</artifactId>
-    <version>2.6-SNAPSHOT</version>
+    <version>2.7-SNAPSHOT</version>
     <name>Jitsi Videobridge Openfire Plugin</name>
     <description>Integrates Jitsi Video Bridge into Openfire.</description>
 
@@ -30,7 +30,7 @@
     <properties>
         <!-- Override the default plugin name, as the default include illegal characters. -->
         <plugin.name>jitsivideobridge</plugin.name>
-        <videobridge.version>1.1-20180815.204518-83</videobridge.version>
+        <videobridge.version>1.1-20190125.162313-103</videobridge.version>
     </properties>
 
     <build>
