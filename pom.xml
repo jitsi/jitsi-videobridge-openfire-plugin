@@ -30,7 +30,7 @@
     <properties>
         <!-- Override the default plugin name, as the default include illegal characters. -->
         <plugin.name>jitsivideobridge</plugin.name>
-        <videobridge.version>1.1-20190125.162313-103</videobridge.version>
+        <videobridge.version>1.1-20190208.160347-106</videobridge.version>
     </properties>
 
     <build>
