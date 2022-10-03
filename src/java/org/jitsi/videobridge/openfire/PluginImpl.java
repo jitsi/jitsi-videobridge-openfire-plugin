@@ -507,6 +507,9 @@ public class PluginImpl
                         }
                         final File extractedFile = new File( nativeLibFolder,
                                                         jarEntry.getName() );
+                        if (!extractedFile.toPath().normalize().startsWith(nativeLibFolder.toPath().normalize())) {
+                            throw new IOException("Bad zip entry");
+                        }
                         Log.debug( "Copying file '{}' from native library " +
                             "into '{}'.", jarEntry, extractedFile );
 
